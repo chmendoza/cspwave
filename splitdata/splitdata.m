@@ -25,6 +25,9 @@ function [fnames, i_start] = splitdata(dirpath, winlen, n_train, n_test, varargi
 %   overlapping train/test windows. The length of the subintervals on each 
 %   epoch is equal. Subintervals are assigned at random to train/test sets.
 %   It must be an even number. Default: 2.
+% start_gap (int):
+%   Gap left at the beginning of each epoch to pick a random start. Default
+%   is equal to winlen.
 %
 % Returns
 % -------
@@ -45,23 +48,29 @@ function [fnames, i_start] = splitdata(dirpath, winlen, n_train, n_test, varargi
 % simulations) is limited to winlen-1. There are much more random starts if
 % overlap is true.
 
-switch nargin
-    case 4
-        overlap = false;
-        n_subdiv = 2;
-    case 5
-        overlap = varargin{1};
-        n_subdiv = 2;
-    case 6
-        overlap = varargin{1};
-        n_subdiv = varargin{2};
-        if n_test > 0 && overlap
-            assert(mod(n_subdiv,2)==0, 'n_subdiv has to be an even number');
+%% Defaults for optional parameters
+overlap = false; n_subdiv = 2; start_gap = winlen;
+
+%% Parse arguments
+if nargin < 4
+    error('Wrong number of arguments');
+elseif nargin > 4
+    n_varargin = length(varargin);
+    assert(mod(n_varargin,2) == 0, 'Wrong number of optional arguments');
+    for i_opt = 1:2:n_varargin
+        switch varargin{i_opt}
+            case 'overlap'
+                overlap = varargin{i_opt+1};
+            case 'n_subdiv'
+                n_subdiv = varargin{i_opt+1};
+            case 'start_gap'
+                start_gap = varargin{i_opt+1};            
+            otherwise
+                error('Wrong optional arguments');
         end
-    otherwise
-        error('Wrong number of arguments');
+    end
 end
-            
+         
 %% Get file list
 expr = '^rx(?<epoch_id>\d+).mat$';
 S = dir(dirpath);
@@ -95,16 +104,16 @@ fnames = fnames(isort);
 L = sum(pnts);  % Total number of samples available (per channel)
 if overlap
     n_win = n_train + n_test;
-    % Start indexes can go in [1 l-winlen], where l is the length of a
-    % subdivision of an epoch. So, winlen samples are reserved per
+    % Start indexes can go in [1 l-start_gap], where l is the length of a
+    % subdivision of an epoch. So, start_gap samples are reserved per
     % subdivision per epoch.
-    max_win = L - n_subdiv * winlen * n_epochs;
+    max_win = L - n_subdiv * start_gap * n_epochs;
     data_prctage = n_win / max_win;
 else
-    % add 1 window/epoch for a random start. NOTE: This limits the number of
-    % random starts (Monte Carlos simulations) to winlen - 1:
-    n_win = n_train + n_test + 1*n_epochs;
-    data_prctage = winlen * n_win / L;  % percentage of data requested
+    % add 1 start_gap/epoch for a random start. NOTE: This limits the number of
+    % random starts (Monte Carlos simulations) to start_gap - 1:
+    n_win = n_train + n_test;
+    data_prctage = winlen * n_win / (L-start_gap*n_epochs);  % percentage of data requested
 end
 
 assert(data_prctage<=1, 'Not enough data in %d epochs!', n_epochs);
@@ -112,9 +121,9 @@ assert(data_prctage<=1, 'Not enough data in %d epochs!', n_epochs);
 train_prctage = n_train / (n_train + n_test);
 n_win = zeros(n_epochs, 2);
 if overlap
-    tot_n_win = floor((pnts-winlen*n_subdiv)*data_prctage); %don't count random start window
+    tot_n_win = floor(pnts*data_prctage);
 else
-    tot_n_win = floor(pnts*data_prctage/winlen)-1; %don't count random start window
+    tot_n_win = floor(pnts*data_prctage/winlen);
 end
 n_win(:,1) = floor(train_prctage * tot_n_win);  % Num. of train windows
 n_win(:,2) = tot_n_win - n_win(:,1);  % Num of test windows
@@ -170,13 +179,16 @@ end
 
 for i_epoch = 1:n_epochs
     ni_train = n_win(i_epoch,1); % Num. of train windows in i-th epoch
-    ni_test = n_win(i_epoch,2); ni = [ni_train ni_test];    
+    ni_test = n_win(i_epoch,2); ni = [ni_train ni_test];
+    
+    rand_start =  randperm(start_gap, 1);
     
     if overlap
-        if n_test == 0            
-            i_start{i_epoch, 1} = uint32(randperm(pnts(i_epoch)-winlen, ni_train));
+        if n_test == 0
+            i_start{i_epoch, 1} = uint32(rand_start + ...
+                randperm(pnts(i_epoch)-start_gap, ni_train));
         else
-            sublen = floor(pnts(i_epoch)/n_subdiv);            
+            sublen = floor(pnts(i_epoch)/n_subdiv);
             offset = 0:sublen:sublen*(n_subdiv-1); % start indices of subintervals
             offset = offset(randperm(n_subdiv)); % shuffle
             offset = reshape(offset, n_subdiv/2, 2); % assign to train/test
@@ -194,14 +206,14 @@ for i_epoch = 1:n_epochs
             for i_sub = 1:n_subdiv/2
                 
                 % train
-                ii_start = randperm(sublen-winlen, sub_ni(i_sub,1));
+                ii_start = rand_start + randperm(sublen-start_gap, sub_ni(i_sub,1));
                 ii_start = ii_start + offset(i_sub,1);
                 i_start{i_epoch,1}(win_cnt(1):win_cnt(1)+sub_ni(i_sub,1)-1) = ...
                     uint32(ii_start);
                 win_cnt(1) = win_cnt(1) + sub_ni(i_sub,1);
                 
                 % test
-                ii_start = randperm(sublen-winlen, sub_ni(i_sub,2));
+                ii_start = rand_start + randperm(sublen-start_gap, sub_ni(i_sub,2));
                 ii_start = ii_start + offset(i_sub,2);
                 i_start{i_epoch,2}(win_cnt(2):win_cnt(2)+sub_ni(i_sub,2)-1) = ...
                     uint32(ii_start);
@@ -209,13 +221,11 @@ for i_epoch = 1:n_epochs
             end
         end
     else
-        max_step = floor(pnts(i_epoch)/(sum(ni)+1));
+        Lt = pnts(i_epoch) - start_gap; % Num. of points available for sampling
+        max_step = floor(Lt/sum(ni));
         if max_step < winlen
             max_step = winlen;
-        end
-        max_i_start = pnts(i_epoch)-winlen+1;
-        max_rand_start =  max_i_start - max_step*(sum(ni)-1);
-        rand_start =  randperm(max_rand_start, 1);
+        end        
         
         % Generate (ordered) start indexes that are at least winlen apart
         % (non-ovelapping windows)
