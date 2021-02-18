@@ -100,6 +100,19 @@ end
 [pnts, isort] = sort(pnts, 'descend');
 fnames = fnames(isort);
 
+% Discard epochs that can not accomodate at least 1 window/subdiv or 1
+% window
+if overlap
+    % FIXME: This might be wrong
+    ind = pnts < (winlen+start_gap)*n_subdiv;
+else
+    ind = pnts < winlen+start_gap;
+end
+fprintf('Discarding %d out %d epochs that are not long enoug\n', ...
+    sum(ind), n_epochs);
+pnts(ind) = [];
+fnames(ind) = [];
+
 %% Make sure that there is enough data available
 L = sum(pnts);  % Total number of samples available (per channel)
 if overlap
@@ -107,6 +120,7 @@ if overlap
     % Start indexes can go in [1 l-start_gap], where l is the length of a
     % subdivision of an epoch. So, start_gap samples are reserved per
     % subdivision per epoch.
+    % FIXME: how big can be winlen?
     max_win = L - n_subdiv * start_gap * n_epochs;
     data_prctage = n_win / max_win;
 else
@@ -122,12 +136,6 @@ if overlap
     tot_n_win = floor((pnts-n_subdiv*start_gap)*data_prctage);
 else
     tot_n_win = floor((pnts-start_gap)*data_prctage/winlen);
-end
-
-if sum(tot_n_win) <  n_win
-    fprintf('Only %d out of %d epochs are long enough\f', ...
-        sum(tot_n_win > 0), n_epochs);
-    error('Not enough data!')
 end
 
 train_prctage = n_train / (n_train + n_test);
