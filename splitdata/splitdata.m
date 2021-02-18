@@ -118,13 +118,21 @@ end
 
 assert(data_prctage<=1, 'Not enough data in %d epochs!', n_epochs);
 
-train_prctage = n_train / (n_train + n_test);
-n_win = zeros(n_epochs, 2);
 if overlap
     tot_n_win = floor((pnts-n_subdiv*start_gap)*data_prctage);
 else
     tot_n_win = floor((pnts-start_gap)*data_prctage/winlen);
 end
+
+if sum(tot_n_win) <  n_win
+    fprintf('Only %d out of %d epochs are long enough\f', ...
+        sum(tot_n_win > 0), n_epochs);
+    error('Not enough data!')
+end
+
+train_prctage = n_train / (n_train + n_test);
+
+n_win = zeros(n_epochs, 2);
 n_win(:,1) = floor(train_prctage * tot_n_win);  % Num. of train windows
 n_win(:,2) = tot_n_win - n_win(:,1);  % Num of test windows
 
