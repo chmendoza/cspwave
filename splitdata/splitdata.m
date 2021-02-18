@@ -145,7 +145,7 @@ end
 max_win = sum(tot_n_win);
 if max_win < n_win
     fprintf('Max number of windows at %.3f%% percentage: %d\n',...
-        max_win, data_prctage);    
+        data_prctage, max_win);
     error('Not enough data!')
 end
 
