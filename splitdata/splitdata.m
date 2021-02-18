@@ -142,6 +142,13 @@ else
     tot_n_win = floor((pnts-start_gap)*data_prctage/winlen);
 end
 
+max_win = sum(tot_n_win);
+if max_win < n_win
+    fprintf('Max number of windows at %.3f%% percentage: %d\n',...
+        max_win, data_prctage);    
+    error('Not enough data!')
+end
+
 train_prctage = n_train / (n_train + n_test);
 
 n_win = zeros(n_epochs, 2);
