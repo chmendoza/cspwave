@@ -108,10 +108,14 @@ if overlap
 else
     ind = pnts < winlen+start_gap;
 end
-fprintf('Discarding %d out %d epochs that are not long enoug\n', ...
-    sum(ind), n_epochs);
-pnts(ind) = [];
-fnames(ind) = [];
+
+if any(ind)
+    fprintf('Discarding %d out %d epochs that are not long enoug\n', ...
+        sum(ind), n_epochs);
+    pnts(ind) = [];
+    fnames(ind) = [];
+    n_epochs = length(pnts);
+end
 
 %% Make sure that there is enough data available
 L = sum(pnts);  % Total number of samples available (per channel)
