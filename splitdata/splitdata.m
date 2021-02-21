@@ -169,7 +169,7 @@ if not(overlap)
         idx = randperm(win_pep(i_epoch), win_train(i_epoch));
         train_indices{i_epoch} = win_ind{i_epoch}(idx);
         
-        if test_indices > 0
+        if n_test > 0
             % Discard train indices to ensure that test indices are different
             win_pep(i_epoch) = win_pep(i_epoch) - win_train(i_epoch);
             win_ind{i_epoch}(idx) = [];
