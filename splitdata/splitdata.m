@@ -1,4 +1,4 @@
-function [fnames, i_start] = splitdata(dirpath, winlen, varargin)
+function varargout = splitdata(dirpath, winlen, varargin)
 % Pick multichannel windows of length winlen at random for training and testing
 %
 % [fnames, i_start] = splitdata(dirpath, winlen, n_train, n_test, varargin)
@@ -34,13 +34,20 @@ function [fnames, i_start] = splitdata(dirpath, winlen, varargin)
 %
 % Returns
 % -------
-% fnames (str): cell array with the filenames of the epochs from where
-%               windows were picked
-%
-% i_start (uint32): cell array with start index of the windows within each epoch
-%
-% i_start{i,k}(j) is the start index of the j-th window in the file
-% fnames{i}, with k=1 for train set and k=2 for test set
+% train_files (str):
+%   cell array with the filenames of the epochs from where the train 
+%   windows were picked.
+% train_indices (uint32):
+%   cell array with start index of the train windows within each epoch
+%   (file). train_indices{i}(j) is the start index of the j-th window in 
+%   the file train_names{i}.
+% test_files (str):
+%   cell array with the filenames of the epochs from where the test 
+%   windows were picked.
+% test_indices (uint32):
+%   cell array with start index of the test windows within each epoch
+%   (file). test_indices{i}(j) is the start index of the j-th window in 
+%   the file test_names{i}.
 %
 % The folder in dirpath contains files with the pattern name
 % rx<epoch_id>.mat, where epoch_id is an integer. Each file has the
@@ -152,31 +159,42 @@ if not(overlap)
     idx  = find(win_pep - win_train - win_test > 0);
     % add 1 window to top epochs to achieve desired number of test windows
     win_test(idx(1:rem_win)) = win_test(idx(1:rem_win)) + 1;    
-    i_start = cell(n_epochs, 2);
-    
+    train_indices = cell(n_epochs, 1);
+    if n_test > 0; test_indices = cell(n_epochs, 1); end
+        
     for i_epoch = 1:n_epochs
         %% Pick windows at random
         
         % Pick indices for training windows
         idx = randperm(win_pep(i_epoch), win_train(i_epoch));
-        i_start{i_epoch, 1} = win_ind{i_epoch}(idx);
+        train_indices{i_epoch} = win_ind{i_epoch}(idx);
         
-        % Discard train indices to ensure that test indices are different
-        win_pep(i_epoch) = win_pep(i_epoch) - win_train(i_epoch);
-        win_ind{i_epoch}(idx) = [];
-        
-        % Pick indices for test windows
-        idx = randperm(win_pep(i_epoch), win_test(i_epoch));
-        i_start{i_epoch, 2} = win_ind{i_epoch}(idx);
+        if test_indices > 0
+            % Discard train indices to ensure that test indices are different
+            win_pep(i_epoch) = win_pep(i_epoch) - win_train(i_epoch);
+            win_ind{i_epoch}(idx) = [];
+            
+            % Pick indices for test windows
+            idx = randperm(win_pep(i_epoch), win_test(i_epoch));
+            test_indices{i_epoch} = win_ind{i_epoch}(idx);
+        end
         
     end
     
-    % i_start{:,2} is empty if n_test == 0
-    i_start = i_start(~cellfun(@isempty, i_start));
+    % Remove epochs that did not contribute training windows
+    idx = ~cellfun(@isempty, train_indices);    
+    varargout{1} = fnames(idx);
+    varargout{2} = train_indices(idx);
+    fprintf(['Returning %d training non-overlapping windows chosen at ', ...
+        'random from %d epochs\n'], n_train, sum(idx)); 
     
-    % Make sure that we are not going out of boundaries
-    max_i_start = max(horzcat(i_start{i_epoch,:}));
-    assert(max_i_start+winlen-1 <= pnts(i_epoch), 'Something went wrong!');
+    if n_test > 0
+        idx = ~cellfun(@isempty, test_indices);
+        varargout{3} = fnames(idx);
+        varargout{4} = test_indices(idx);
+        fprintf(['Returning %d training non-overlapping windows chosen at ', ...
+            'random from %d epochs\n'], n_test, sum(idx));
+    end   
 else
     %% ======== Overlapping windows  ================
     
@@ -297,12 +315,5 @@ else
                 [win_ind(1:idx,i_set); {win_ind{idx+1,i_set}(1:rem_win)}];
         end
     end
-end
-
-if n_test > 0
-    % Make sure that there is no overlapping between train and test set
-    rep_ni_test = repmat(i_start{i_epoch,2}', 1, ni_train);
-    dist = abs(double(rep_ni_test)-double(i_start{i_epoch,1}));
-    assert(all(dist(:) >= winlen), 'Train and test windows are overlapping!');
 end
 end
