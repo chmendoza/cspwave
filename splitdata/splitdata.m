@@ -135,8 +135,8 @@ if not(overlap)
     
     %% Generate max. num of window indices at random per epoch
     rand_start = randi(start_gap, n_epochs, 1);
-    win_ind = arrayfun(@(x,y) x + 1:winlen:y-winlen+1, ...
-        rand_start, avail_pnts, 'UniformOutput', false);
+    f = @(x,y) x + (1:winlen:y-winlen+1);
+    win_ind = arrayfun(f, rand_start-1, avail_pnts, 'UniformOutput', false);
     win_pep = cellfun(@length, win_ind);
     
     %% Compute number of train windows to draw from each epoch
@@ -217,8 +217,9 @@ else
     if n_test == 0
         avail_pnts = pnts - start_gap;
         rand_start = randi(start_gap, n_epochs, 1);
-        win_ind = arrayfun(@(x,y) x + randperm(y-winlen+1), ...
-            rand_start, avail_pnts, 'UniformOutput', false);
+        f = @(x,y) x + (1:winlen:y-winlen+1);
+        win_ind = arrayfun(f, rand_start-1, avail_pnts, ...
+            'UniformOutput', false);
         win_pep = cellfun(@length, win_ind);
         cumwin = cumsum(win_pep);
         idx = cumwin <= n_train;
