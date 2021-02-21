@@ -148,9 +148,10 @@ if not(overlap)
     %% Compute number of test windows to draw from each epoch
     win_test = floor(win_pep * test_prctage);
     rem_win = n_test - sum(win_test);
+    % epochs that have spare windows
+    idx  = find(win_pep - win_train - win_test > 0);
     % add 1 window to top epochs to achieve desired number of test windows
-    win_test(1:rem_win) = win_test(1:rem_win) + 1;
-    
+    win_test(idx(1:rem_win)) = win_test(idx(1:rem_win)) + 1;    
     i_start = cell(n_epochs, 2);
     
     for i_epoch = 1:n_epochs
