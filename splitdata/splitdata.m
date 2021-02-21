@@ -141,13 +141,13 @@ if not(overlap)
     
     %% Compute number of train windows to draw from each epoch
     win_train = floor(win_pep * train_prctage);
-    rem_win = n_train - win_train;
+    rem_win = n_train - sum(win_train);
     % add 1 window to top epochs to achieve desired number of test windows
     win_train(1:rem_win) = win_train(1:rem_win) + 1;
     
     %% Compute number of test windows to draw from each epoch
     win_test = floor(win_pep * test_prctage);
-    rem_win = n_test - win_test;
+    rem_win = n_test - sum(win_test);
     % add 1 window to top epochs to achieve desired number of test windows
     win_test(1:rem_win) = win_test(1:rem_win) + 1;
     
