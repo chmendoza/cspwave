@@ -184,14 +184,14 @@ if not(overlap)
     % Remove epochs that did not contribute training windows
     idx = ~cellfun(@isempty, train_indices);    
     varargout{1} = fnames(idx);
-    varargout{2} = cellfun(@uint32, train_indices(idx));
+    varargout{2} = cellfun(@uint32, train_indices(idx),'UniformOutput',false);
     fprintf(['Returning %d training non-overlapping windows chosen at ', ...
         'random from %d epochs\n'], n_train, sum(idx)); 
     
     if n_test > 0
         idx = ~cellfun(@isempty, test_indices);
         varargout{3} = fnames(idx);
-        varargout{4} = cellfun(@uint32, test_indices(idx));
+        varargout{4} = cellfun(@uint32, test_indices(idx),'UniformOutput',false);
         fprintf(['Returning %d training non-overlapping windows chosen at ', ...
             'random from %d epochs\n'], n_test, sum(idx));
     end   
