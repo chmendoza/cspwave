@@ -113,7 +113,7 @@ fnames = fnames(isort);
 ind = pnts < winlen+start_gap;
 
 if any(ind)
-    fprintf('Discarding %d out %d epochs that are not long enoug\n', ...
+    fprintf('Discarding %d out %d epochs that are not long enough\n', ...
         sum(ind), n_epochs);
     pnts(ind) = [];
     fnames(ind) = [];
