@@ -192,7 +192,7 @@ if not(overlap)
         idx = ~cellfun(@isempty, test_indices);
         varargout{3} = fnames(idx);
         varargout{4} = cellfun(@uint32, test_indices(idx),'UniformOutput',false);
-        fprintf(['Returning %d training non-overlapping windows chosen at ', ...
+        fprintf(['Returning %d test non-overlapping windows chosen at ', ...
             'random from %d epochs\n'], n_test, sum(idx));
     end   
 else
