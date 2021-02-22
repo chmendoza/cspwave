@@ -13,7 +13,6 @@ if ~isdeployed
     addpath(genpath(firfilt_path));    
 end
 
-% winlen = 512 * 2; % 2 seconds
 RunConf = jsondecode(fileread(confpath));
 
 winlen = RunConf.winlen;
@@ -21,11 +20,11 @@ dirpath = RunConf.dirpath;
 dfname = RunConf.dfname;
 dpath = fullfile(dirpath, dfname);
 mObj = matfile(dpath);
-fnames = mObj.fnames; 
-i_start = mObj.i_start(:,1); % train
+train_names = mObj.train_names;
+train_indices = mObj.train_indices;
 
-opts = {'dfnames', fnames,...
-        'i_start', i_start,...
+opts = {'dfnames', train_names,...
+        'i_start', train_indices,...
         'winlen', winlen,...
         'cfname', RunConf.Sfname, ...
         'locutoff', RunConf.locutoff, ...
