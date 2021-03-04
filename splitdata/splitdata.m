@@ -34,14 +34,14 @@ function varargout = splitdata(dirpath, winlen, varargin)
 %
 % Returns
 % -------
-% train_files (str):
+% train_names (str):
 %   cell array with the filenames of the epochs from where the train 
 %   windows were picked.
 % train_indices (uint32):
 %   cell array with start index of the train windows within each epoch
 %   (file). train_indices{i}(j) is the start index of the j-th window in 
 %   the file train_names{i}.
-% test_files (str):
+% test_names (str):
 %   cell array with the filenames of the epochs from where the test 
 %   windows were picked.
 % test_indices (uint32):
@@ -59,7 +59,7 @@ function varargout = splitdata(dirpath, winlen, varargin)
 % overlap is true.
 
 %% Defaults for optional parameters
-n_train = []; n_test = []; prctage = 100; train_prctage = 80;
+n_train = []; n_test = []; prctage = 1; train_prctage = 0.8;
 overlap = false; n_subdiv = 2; start_gap = winlen;
 
 %% Parse arguments
