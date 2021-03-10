@@ -251,7 +251,7 @@ for ii = 1:n_interictal_segments
     offset = one_hour + one_sample;
     t_start = t1:offset:t1+(nn-1)*offset;
     t_end = [t_start(1:nn-1)+one_hour t2];
-    interictal_intervals(1+cnt:nn+cnt) = [t_start' t_end'];
+    interictal_intervals(1+cnt:nn+cnt, :) = [t_start' t_end'];
     cnt = cnt + nn;
 end
 
