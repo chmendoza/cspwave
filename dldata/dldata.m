@@ -17,7 +17,7 @@ end
 preictal_length = 3600 * 1e6; % usec away from EEC
 horizon_lenght = 5 * 60 * 1e6; % usec away from EEC
 interictal_gap = 4 * 3600 * 1e6; % usec away from ictal segment
-interictal_length = 3600 * 1e6;
+one_hour = 3600 * 1e6;
 x_pat = '^x(?<id>\d+).mat$';
 
 fprintf('Preferences directory: %s\n', prefdir);
@@ -76,11 +76,13 @@ seizTimes = seizTimes(:, [1 3]); % ictal segment: [EEC END]
 
 ictal = structfun(@(x) rmfield(x, 'FILE'), ictal, 'UniformOutput', false);
 I = structfun(@(x) isfield(x, 'STATUS'), ictal); nbad = sum(I);
-seiz_str = repmat(' %s', 1, nbad); 
-warn_msg = ['Seizures with STATUS field:', seiz_str, '\nDiscarding..\n'];
-warning(warn_msg,  seiz_ids{I}); excluded_seiz = seiz_ids(I);
-ictal = rmfield(ictal, excluded_seiz);
-seiz_ids(I) = []; n_seiz = length(seiz_ids);
+seiz_str = repmat(' %s', 1, nbad);
+if nbad > 0
+    warn_msg = ['Seizures with STATUS field:', seiz_str, '\nDiscarding..\n'];
+    warning(warn_msg,  seiz_ids{I}); excluded_seiz = seiz_ids(I);
+    ictal = rmfield(ictal, excluded_seiz);
+    seiz_ids(I) = []; seizTimes(I,:) = []; n_seiz = length(seiz_ids);    
+end
 
 %% Reformat channel labels from ieeg.org
 % to be consistent with labels from L. Kini et al., 2019.
@@ -94,10 +96,12 @@ channel_labels = regexprep(channel_labels, match_expr, replace_expr);
 n_channels = length(channel_labels);
 channel_ids = 1:n_channels;
 ignored_channels = patients.(patient_label).IGNORE_ELECTRODES;
-ignored_ids = cellfun(@(x)find(strcmpi(channel_labels, x)), ignored_channels);
-channel_ids = setxor(channel_ids, ignored_ids);
-channel_labels = channel_labels(channel_ids);
-n_channels = length(channel_labels);
+if ~isempty(ignored_channels)
+    ignored_ids = cellfun(@(x)find(strcmpi(channel_labels, x)), ignored_channels);
+    channel_ids = setxor(channel_ids, ignored_ids);
+    channel_labels = channel_labels(channel_ids);
+    n_channels = length(channel_labels);
+end
 
 %% Gather more metadata
 srate = zeros(n_channels, 1); volt_factor = zeros(n_channels, 1);
@@ -179,6 +183,7 @@ end
 
 t_start = [0; seizTimes(1:end-1,2)];
 t_end = seizTimes(:,1);
+% intervals located BEFORE each seizure:
 inter_ictal_intervals = [t_start t_end];
 % Some seizures are closer than preictal_zone_length+horizon_lenght
 I = diff(inter_ictal_intervals, 1, 2) > (preictal_length+horizon_lenght);
@@ -226,24 +231,29 @@ end
 tEnd = n_samples/srate*1e6; %final time in usec
 t_start = [0; seizTimes(:,2)+interictal_gap];
 t_end = [seizTimes(:,1)-interictal_gap; tEnd];
-interictal_intervals = [t_start t_end];
+interictal_segments = [t_start t_end];
 % Some seizures are closer than 2*interictal_gap
-I = diff(interictal_intervals,1,2) > 0;
-interictal_intervals = interictal_intervals(I, :);
+I = diff(interictal_segments,1,2) > 0;
+interictal_segments = interictal_segments(I, :);
 
 % Break into 1-hr segments because of RAM memory limitations
-onehour_interictal_intervals = [];
-n_interictal_segments = size(interictal_intervals, 1);
+interict_segment_len = diff(interictal_segments,1,2) + 1;
+n_interictal_intervals = floor(interict_segment_len / one_hour);
+I = mod(interict_segment_len, one_hour) > 0;
+n_interictal_intervals(I) =  n_interictal_intervals(I) + 1;
+interictal_intervals = zeros(sum(n_interictal_intervals), 2);
+n_interictal_segments = size(interictal_segments, 1);
+cnt = 0;
 for ii = 1:n_interictal_segments
-    t_start = interictal_intervals(ii,1):interictal_length+one_sample:interictal_intervals(ii,2);
-    t_end = interictal_intervals(ii,1)+interictal_length:interictal_length+one_sample:interictal_intervals(ii,2);
-    if t_end(end) < interictal_intervals(ii,2)
-        t_end = [t_end interictal_intervals(ii,2)];
-    end
-    onehour_interictal_intervals = [onehour_interictal_intervals; [t_start' t_end']];
+    nn = n_interictal_intervals(ii);
+    t1 = interictal_segments(ii,1);
+    t2 = interictal_segments(ii,2);
+    offset = one_hour + one_sample;
+    t_start = t1:offset:t1+(nn-1)*offset;
+    t_end = [t_start(1:nn-1)+one_hour t2];
+    interictal_intervals(1+cnt:nn+cnt) = [t_start' t_end'];
+    cnt = cnt + nn;
 end
-interictal_intervals = onehour_interictal_intervals;
-
 
 % Checkpoint: did we already downloaded some files?
 file_list = dir(interictal_dir); file_list = {file_list.name};
@@ -256,14 +266,14 @@ else
     cnt_file = 1;
 end
 
-n_interictal_segments = size(interictal_intervals, 1);
+n_interictal_intervals = sum(n_interictal_intervals);
 fprintf('Getting interictal segments...\n');
-while cnt_file <= n_interictal_segments
+while cnt_file <= n_interictal_intervals
     fname = sprintf('x%d.mat', cnt_file);
     fname = fullfile(interictal_dir, fname);
     mObj = matfile(fname, 'Writable', true);
-    epoch_length = ceil(diff(interictal_intervals(cnt_file,:))*srate/1e6);    
-    mObj.epoch = zeros(epoch_length, n_channels);    
+    epoch_length = ceil(diff(interictal_intervals(cnt_file,:))/one_sample); % in samples   
+    mObj.epoch = zeros(epoch_length, n_channels);
     mObj.t_start = interictal_intervals(cnt_file,1); % usec
     mObj.t_end = interictal_intervals(cnt_file,2);
     
@@ -274,7 +284,7 @@ while cnt_file <= n_interictal_segments
     for i_block = 1:n_blocks
         t_end = t_start + max_block_size_us;
         if t_end > interictal_intervals(cnt_file, 2)
-            t_end = preictal_intervals(cnt_file, 2);
+            t_end = interictal_intervals(cnt_file, 2);
             block_size_us = t_end - t_start;
         else
             block_size_us = max_block_size_us;
@@ -287,6 +297,6 @@ while cnt_file <= n_interictal_segments
     end
     mObj.epoch = mObj.epoch';
     tElapsed = toc(tStartRun);
-    fprintf('Segment %d out of %d, in %.3f seconds\n', cnt_file, n_interictal_segments, tElapsed);
+    fprintf('Segment %d out of %d, in %.3f seconds\n', cnt_file, n_interictal_intervals, tElapsed);
     cnt_file = cnt_file + 1;
 end
