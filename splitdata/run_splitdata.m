@@ -15,7 +15,7 @@ conditions = {'preictal', 'interictal'};
 n_cond = length(conditions);
 for i_cond = 1:n_cond % each condition has its own folder
     
-    fprintf('Spliting data in %s condition from patient %s\n',...
+    fprintf('Splitting data in %s condition from patient %s\n',...
         conditions{i_cond}, patient_label);
         
     dirpath = fullfile(data_dir, patient_label, conditions{i_cond});
