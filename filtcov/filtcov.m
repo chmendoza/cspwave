@@ -121,19 +121,9 @@ for i_epoch = 1:n_epochs
     mObj = matfile(fpath);
     pnts(i_epoch) = size(mObj, 'epoch', 2);
 end
-max_pnts = max(pnts);
+
 forStart = tic;
-tot_mem = str2double(getenv('SLURM_MEM_PER_NODE'));
-tmp = whos;
-tot_mem = tot_mem - sum([tmp.bytes])/1024^2;
-% Matlab eats up 1 Gb up front (maybe less on deployed app)
-tot_mem = tot_mem - 1024;
-X_maxmem = max_pnts*n_chan*8*5/1024^2;
-n_workers = floor(tot_mem/X_maxmem);
-NumWorkers = str2double(getenv('SLURM_NTASKS_PER_NODE'));
-if n_workers > NumWorkers
-    n_workers = NumWorkers;
-end
+n_workers = str2double(getenv('SLURM_NTASKS_PER_NODE'));
 if n_workers > n_epochs
     n_workers = n_epochs;
 end
