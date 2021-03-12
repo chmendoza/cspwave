@@ -1,7 +1,6 @@
 function run_filtcov(confpath)
 
 % Script to run filtcov and save the covariance matrices to disk
-% It calls filtcov two times: one for train and one for test set
 
 if ~isdeployed
     addpath('../common');
