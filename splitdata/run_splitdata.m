@@ -11,12 +11,6 @@ start_gap = RunConf.start_gap; % Gap for random start.
 patient_label = RunConf.patient_label;
 outfile = RunConf.outfile;  % Output file
 
-if overlap
-    overlap_str = 'overlap';
-else
-    overlap_str = 'non-overlap';
-end
-
 conditions = {'preictal', 'interictal'};
 n_cond = length(conditions);
 for i_cond = 1:n_cond % each condition has its own folder
