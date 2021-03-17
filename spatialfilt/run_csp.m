@@ -20,7 +20,7 @@ n_csp = RunConf.n_csp;
 winlen = RunConf.winlen;
 method = RunConf.method;
 dirpath = {RunConf.dircond1, RunConf.dircond2};
-mfname = RunConf.mfname;
+dfname = RunConf.dfname;
 Sfname = RunConf.Sfname;
 rfname = RunConf.rfname;
 locutoff = RunConf.locutoff; % Hz
@@ -47,7 +47,7 @@ opts = {'dfnames', [],...
     'i_start', [],...
     'winlen', [],...
     'choose', [],...
-    'k', 1000,...
+    'k', 15,...
     'locutoff', locutoff,...
     'hicutoff', hicutoff,...
     'Fs', []};
@@ -58,15 +58,20 @@ fprintf('Processing patient %s in band [%.3f %.3f] Hz\n', patient_label, ...
 %% Compute spatial filters
 [W, y] = csp(S1fname, S2fname, 'k', n_csp, 'method', method);
 
+% Output variables saved with splitdata()
+splitvars = {{'train_names', 'train_indices'},...
+             {'test_names', 'test_indices'}};
+
 for i_cond =1:2
     for i_set = 1:2
-        %% Apply W to preictal segments.
-        mObj = matfile(fullfile(dirpath{i_cond}, mfname));
-        dfnames{i_cond,i_set} = mObj.fnames;
-        i_start{i_cond,i_set} = mObj.i_start(:,i_set); % train/test data
+        %% File names and start indices of train/test windows
+        mObj = matfile(fullfile(dirpath{i_cond}, dfname));
+        dfnames{i_cond,i_set} = mObj.(splitvars{i_set}{1}); % file names 
+        i_start{i_cond,i_set} = mObj.(splitvars{i_set}{2}); % start indices
         
-        % With temporal filtering and window-based processing
-        % choose 1000 windows with highest energy
+        %% Temporal filtering and window-based processing
+        % For quantitative analysis: AUC and boxplot
+        % choose k windows with highest energy
         opts = changeopts(opts, 'choose', 'highenergy');
         opts = changeopts(opts, 'Fs', 512);
         opts = changeopts(opts, 'winlen', winlen);
@@ -81,7 +86,9 @@ for i_cond =1:2
         oi_start{i_cond,i_set} = toi_start;
         winord{i_cond,i_set} = twinord;
         
-        % Without temporal filtering and window-based (for qualitative analysis of waveforms)
+        %% No temporal filtering and window-based
+        % Run over the top k windows found in previous step
+        % For qualitative analysis of waveforms
         opts = changeopts(opts, 'choose', []);
         opts = changeopts(opts, 'Fs', []);
         for i_csp = 1:n_csp
