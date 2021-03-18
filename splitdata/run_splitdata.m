@@ -9,7 +9,7 @@ train_prctage = RunConf.train_prctage; % Percentage of train data
 overlap = RunConf.overlap; % True: Overlapping windows, False: non-overlapping
 start_gap = RunConf.start_gap; % Gap for random start.
 patient_label = RunConf.patient_label;
-outfile = RunConf.outfile;  % Output file
+outfile = RunConf.outfile;  % Output file name
 
 conditions = {'preictal', 'interictal'};
 n_cond = length(conditions);
@@ -27,8 +27,8 @@ for i_cond = 1:n_cond % each condition has its own folder
                   'overlap', overlap,...
                   'start_gap', start_gap);
               
-    outfile = fullfile(dirpath, outfile);
-    save(outfile, 'train_names', 'train_indices', 'test_names', 'test_indices', '-v7.3');
+    outpath = fullfile(dirpath, outfile); % Output file full path
+    save(outpath, 'train_names', 'train_indices', 'test_names', 'test_indices', '-v7.3');
     
 end
 
