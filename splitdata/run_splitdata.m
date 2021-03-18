@@ -27,8 +27,8 @@ for i_cond = 1:n_cond % each condition has its own folder
                   'overlap', overlap,...
                   'start_gap', start_gap);
               
-    outifile = fullfile(dirpath, outfile);
-    save(outifile, 'train_names', 'train_indices', 'test_names', 'test_indices', '-v7.3');
+    outfile = fullfile(dirpath, outfile);
+    save(outfile, 'train_names', 'train_indices', 'test_names', 'test_indices', '-v7.3');
     
 end
 
