@@ -17,4 +17,4 @@ This work uses data set and annotations from "[Virtual resection predicts surgic
 
 [Lkini2019]: https://academic.oup.com/brain/article-abstract/142/12/3892/5584755
 [accepted_paper]: https://arxiv.org/abs/2103.13853
-[NER]: neuro.embs.org
+[NER]: https://neuro.embs.org
