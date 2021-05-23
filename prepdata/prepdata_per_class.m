@@ -118,10 +118,11 @@ for i_file = 1:n_files
     for i_chunk = 1:n_chunks
         chunk_ind = good_ind(i_chunk,1):good_ind(i_chunk,2);
         %% Find dc segments (including all zeros). Apply to each channel indep.
-        [r, i_sample] = find(diff(mObj.epoch(:,chunk_ind), 1, 2) == 0);
-        r = findgroups(r);
-        if ~isempty(r)
-            aux_dc_ind = splitapply(@(x){find_chunk_indices(x, min_bad_chunk_length)}, i_sample, r);
+        [channel, time_point] = find(diff(mObj.epoch(:,chunk_ind), 1, 2) == 0); %relative to chunk_ind
+        time_point = chunk_ind(time_point); % Use absolute time reference
+        channel = findgroups(channel);
+        if ~isempty(channel)
+            aux_dc_ind = splitapply(@(x){find_chunk_indices(x, min_bad_chunk_length)}, time_point, channel);
             dc_ind{i_chunk} = vertcat(aux_dc_ind{:});
         else
             dc_ind{i_chunk} = reshape([],[],2);
@@ -220,20 +221,20 @@ for i_file = 1:n_files
         fprintf('Remaning chunks: %d\n', n_chunks);
         %% Look for anomalous peaks        
         % i_sample are sample indexes within each chunk (EEG.data) for all channels.
-        [chan, i_sample] = find(abs(diff(EEG.data,1,2)) >= diff_threshold);
-        i_sample = unique(i_sample);
+        [chan, time_point] = find(abs(diff(EEG.data,1,2)) >= diff_threshold);
+        time_point = unique(time_point);
         clear EEG;
-        if i_sample
+        if time_point
             warn_msg = ['Chunk with anomalous peaks in ',...
                 'patient %s, at %.3f seconds, %.3f seconds long. ',...
                 'At channels', sprintf(' %d', unique(chan))];
             warning(warn_msg, patient, t_start/1e6, t_chunk_length/1e6);
             %% split further each chunk.
             % we need to convert those indexes within the whole epoch (mObj.epoch)
-            i_sample = chunk_ind(i_sample)';
+            time_point = chunk_ind(time_point)';
             % add buffer around sample with anomalous epoch
-            i_sample = repmat(i_sample, 1, 2);
-            bad_ind = add_buffer(i_sample, buffer_length, [chunk_ind(1) chunk_ind(end)]);
+            time_point = repmat(time_point, 1, 2);
+            bad_ind = add_buffer(time_point, buffer_length, [chunk_ind(1) chunk_ind(end)]);
             bad_ind = interval_union(bad_ind);
             good_subchunk_ind = get_good_segment_indices(...
                 [chunk_ind(1) chunk_ind(end)], bad_ind);
