@@ -119,7 +119,7 @@ for i_file = 1:n_files
         chunk_ind = good_ind(i_chunk,1):good_ind(i_chunk,2);
         %% Find dc segments (including all zeros). Apply to each channel indep.
         [channel, time_point] = find(diff(mObj.epoch(:,chunk_ind), 1, 2) == 0); %relative to chunk_ind
-        time_point = chunk_ind(time_point); % Use absolute time reference
+        time_point = chunk_ind(time_point)'; % Use absolute time reference
         channel = findgroups(channel);
         if ~isempty(channel)
             aux_dc_ind = splitapply(@(x){find_chunk_indices(x, min_bad_chunk_length)}, time_point, channel);
