@@ -133,6 +133,7 @@ if not(overlap)
         train_prctage = n_train / (n_train + n_test);
         test_prctage = 1 - train_prctage;
         tot_req_win = n_train + n_test;
+        prctage = tot_req_win/tot_max_win;
         assert(tot_req_win <= tot_max_win, 'Not enough data!');
     else
         test_prctage = 1 - train_prctage;
@@ -147,13 +148,13 @@ if not(overlap)
     win_pep = cellfun(@length, win_ind);
     
     %% Compute number of train windows to draw from each epoch
-    win_train = floor(win_pep * train_prctage);
+    win_train = floor(win_pep * prctage * train_prctage);
     rem_win = n_train - sum(win_train);
     % add 1 window to top epochs to achieve desired number of test windows
     win_train(1:rem_win) = win_train(1:rem_win) + 1;
     
     %% Compute number of test windows to draw from each epoch
-    win_test = floor(win_pep * test_prctage);
+    win_test = floor(win_pep * prctage * test_prctage);
     rem_win = n_test - sum(win_test);
     % epochs that have spare windows
     idx  = find(win_pep - win_train - win_test > 0);
